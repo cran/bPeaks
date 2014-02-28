@@ -45,8 +45,8 @@ function(vecIP, vecControl, lineIP, lineControl, lineFC, lineAverage,
 
     vecLogFC   = log2((vecIP + 1)/(vecINPUT + 1))
  
-    plot(vecLogFC, type = "l", xlab = xlabels, ylab = "T3: log2(IP / control)",
-            main = paste(title, "\nlog2(IP / control) (T3)"), col = "orange",
+    plot(vecLogFC, type = "l", xlab = xlabels, ylab = "T3: log2FC",
+            main = paste(title, "\nlog2FC (T3)"), col = "orange",
             xlim = c(posInf-add,posSup+add),
             ylim = c(min(vecLogFC, na.rm = T), max(vecLogFC, na.rm = T)))
     abline(v = posInf, lty = "dashed", col = "blue")

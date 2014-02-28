@@ -31,7 +31,6 @@ Detailed information and tutorials can be found online \code{http://bpeaks.gene-
 }
 \seealso{
 \code{\link{bPeaksAnalysis}}
-\code{\link{peakLocation}}
 }
 \examples{
 # get library

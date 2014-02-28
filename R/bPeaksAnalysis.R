@@ -1,8 +1,9 @@
 bPeaksAnalysis <-
-function(IPdata, controlData, chromosomalFeatures = NULL, 
-                  smoothingValue = 20, windowSize = 150, windowOverlap = 50, 
-                  IPcoeff = 6, controlCoeff = 4, log2FC = 2, averageQuantiles = 0.9,
-                  resultName = "bPeaks", peakDrawing = TRUE, promSize = 800){
+function(IPdata, controlData, cdsPositions = NULL,
+         smoothingValue = 20, windowSize = 150, windowOverlap = 50, 
+         IPcoeff = 2, controlCoeff = 2, log2FC = 2, averageQuantiles = 0.9,
+         resultName = "bPeaks", peakDrawing = TRUE, 
+	 promSize = 800, withoutOverlap = FALSE){
 
 
 #######
@@ -21,9 +22,9 @@ function(IPdata, controlData, chromosomalFeatures = NULL,
     print("Starting analysis of genome-wide read depth...")
     # calculate baseline IP and INPUT values
     lineIP    = baseLineCalc(allData$IPsignal)
-    print(paste("Baseline IP signal (average value): ", round(lineIP, 3)))
+    print(paste("Average genome-wide read depth (IP data): ", round(lineIP, 3)))
     lineINPUT = baseLineCalc(allData$controlSignal)
-    print(paste("Baseline ontrol signal (average value): ", round(lineINPUT, 3)))
+    print(paste("Average genome-wide read depth (control data): ", round(lineINPUT, 3)))
     print("**********************************************")
     print("")
 
@@ -36,6 +37,18 @@ function(IPdata, controlData, chromosomalFeatures = NULL,
     # to store results
     peakStats = NULL
     #load("peakStats.Robject")
+
+    multipleParam = 0
+    # if the number of tested paramaters is higher than 7
+    if(length(c(smoothingValue, windowSize, windowOverlap, 
+		IPcoeff, controlCoeff, log2FC, averageQuantiles)) > 7){
+		
+	multipleParam = 1
+
+	}
+
+    print("Testing multiple parameters ?")
+    print(multipleParam)
 
     for(smoo in smoothingValue){
 
@@ -87,6 +100,10 @@ function(IPdata, controlData, chromosomalFeatures = NULL,
         smoothedINPUT = dataSmoothing(vecData = vecINPUT, widthValue = smoo) 
         print("...done (control signal)")
 
+	if(multipleParam == 1){
+		resultName = "tempFile"
+	}
+
         # seed detection
         res = peakDetection(IPdata = smoothedIP, controlData = smoothedINPUT, 
                            chrName = as.character(chromNames[i]), 
@@ -114,11 +131,22 @@ function(IPdata, controlData, chromosomalFeatures = NULL,
     if(is.null(allPeaks) == F){
 
         print("Saving BED file with all bPeak information:")
-        print(paste(resultName, "_bPeaks_allGenome.bed"))
+        print(paste(resultName, "_bPeaks_allGenome.bed", sep = ""))
+
+	# bug correction in case of only one peak is detected
+	if(nrow(allPeaks) == 1){
+	
+		#bedFinalData = t(as.matrix(c(allPeaks[1:3], "allGenome_bPeak_1", allPeaks[4:6])))
+		bedFinalData = t(as.matrix(c(allPeaks[1:3], "allGenome_bPeak_1", allPeaks[4:7])))
+
+	}else{
+
         # write final BED final 
         allPeaks = allPeaks[order(as.numeric(allPeaks[,colnames(allPeaks) == "IP"]), decreasing = T),]
         bedFinalData = cbind(allPeaks[,1:3], paste("allGenome_bPeak_", 1:nrow(allPeaks), sep = ""), 
-                                allPeaks[,4:6])
+                                allPeaks[,4:7])
+
+	}
 
         write.table(bedFinalData, file = paste(resultName, "_bPeaks_allGenome.bed", sep = ""), 
                 quote = F, sep = "\t", eol = "\n", 
@@ -126,16 +154,17 @@ function(IPdata, controlData, chromosomalFeatures = NULL,
         print("**********************************************")
         print("")
  
-        if(is.null(chromosomalFeatures) == F){
+        if(is.null(cdsPositions) == F){
 
-           ORFinfo = chromosomalFeatures
            bedFile = paste(resultName, "_bPeaks_allGenome.bed", sep = "")
 
-           resPeakLoc = peakLocation(bedFile = bedFile, genomicInfo = ORFinfo, outputName = resultName, promSize = promSize)
+           resPeakLoc = peakLocation(bedFile = bedFile, cdsPositions = cdsPositions,
+			withoutOverlap = withoutOverlap, 
+			outputName = resultName, promSize = promSize)
 
             NumIn = resPeakLoc$inFeatures
-            NumBefore = resPeakLoc$beforeFeatures
-            NumAfter  = resPeakLoc$afterFeatures
+            NumBefore = resPeakLoc$upFeatures
+           # NumAfter  = resPeakLoc$afterFeatures
 
          }else{
 
@@ -145,12 +174,24 @@ function(IPdata, controlData, chromosomalFeatures = NULL,
           }
 
       # statistics related to the detected peaks
-      peakStats = rbind(peakStats, c(smoo, w, t, j, k, r, s, nrow(allPeaks), round(mean(as.numeric(allPeaks[,3]) - as.numeric(allPeaks[,2])),3), round(mean(as.numeric(allPeaks[,4])),3), round(mean(as.numeric(allPeaks[,5])), 3), round(mean(as.numeric(allPeaks[,6])), 3), NumBefore, NumAfter, NumIn))
+      peakStats = rbind(peakStats, c(smoo, w, t, j, k, r, s, nrow(allPeaks), round(mean(as.numeric(allPeaks[,3]) - as.numeric(allPeaks[,2])),3), round(mean(as.numeric(allPeaks[,4])),3), round(mean(as.numeric(allPeaks[,5])), 3), round(mean(as.numeric(allPeaks[,6])), 3), round(mean(as.numeric(allPeaks[,7])), 3), NumBefore, NumIn))
+
+    # end of if(is.null(allPeaks) == F)
+    }else{
+
+	peakStats = rbind(peakStats, c(smoo, w, t, j, k, r, s, 0, 0, 0, 0, 0, 0, 0))
+
+	}
+
+	# colnames
+	colnames(peakStats) = c("smoothingValue", "windowSize", "windowOverlap", "IPcoeff", "controlCoeff", "log2FC", "averageQuantiles", "bPeaksNumber", "meanSize", "meanIPsignal", "meanControlSignal", "meanLog2FC",
+	"meanAverageLog2FC", "bPeaksNumber_beforeFeatures", "bPeaksNumber_inFeatures")
 
       save(peakStats, file = "peakStats.Robject")
 
-    # end of if(is.null(allPeaks) == F)
-    }
+ 	write.table(peakStats, 
+		file = paste(resultName, "_bPeaks_parameterSummary.txt", sep = ""), quote = F,
+                sep = "\t", row.names = F, col.names = T)
 
     # end of x
     }
@@ -176,14 +217,29 @@ function(IPdata, controlData, chromosomalFeatures = NULL,
     # at the end only
     if(is.null(nrow(peakStats) == F)){
 
-    colnames(peakStats) = c("smoothingValue", "windowSize", "windowOverlap", "IPcoeff", "controlCoeff", "log2FC", "averageQuantiles", "bPeakNumber", "meanSize", "meanIPsignal", "meanControlSignal", "meanLog2FC", "bPeakNumber_beforeFeatures", "bPeakNumber_afterFeatures", "bPeakNumber_inFeatures")
+#    colnames(peakStats) = c("smoothingValue", "windowSize", "windowOverlap", "IPcoeff", "controlCoeff", "log2FC", "averageQuantiles", "bPeaksNumber", "meanSize", "meanIPsignal", "meanControlSignal", "meanLog2FC", "bPeaksNumber_beforeFeatures", "bPeaksNumber_inFeatures")
 
-    write.table(peakStats, file = paste(resultName, "_bPeaks_parameterSummary.txt", sep = ""), quote = F,
-                sep = "\t", row.names = F, col.names = T)
+	colnames(peakStats) = c("smoothingValue", "windowSize", "windowOverlap", "IPcoeff", "controlCoeff", "log2FC", "averageQuantiles", "bPeaksNumber", "meanSize", "meanIPsignal", "meanControlSignal", "meanLog2FC",
+	"meanAverageLog2FC", "bPeaksNumber_beforeFeatures", "bPeaksNumber_inFeatures")
 
     save(peakStats, file = "peakStats.Robject")
 
     }
+
+	if(multipleParam == 1){
+
+
+	print("Temporary files are deleted...")
+	print("")
+	system("rm tempFile*")
+    	print("...Summary table is created and saved in text file:")
+	print("bPeaks_parameterSummary.txt")
+
+    	write.table(peakStats, file = "bPeaks_parameterSummary.txt", 
+		quote = F,
+                sep = "\t", row.names = F, col.names = T)
+	}
+
 
     print("")
     print("**********************************************************************")

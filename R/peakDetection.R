@@ -53,7 +53,7 @@ function(IPdata, controlData, chrName,
 
         # ratio between IP and INPUT values
         meanRatio = log2((meanIP + 1)/(meanINPUT + 1))
-    
+		
         # criterion to evaluate signal intensities (IP and INPUT)
         meanAverage = (log2(meanIP + 1) + log2(meanINPUT + 1))/2
 
@@ -181,41 +181,7 @@ function(IPdata, controlData, chrName,
     
     text(rep(15,7), c(9, 7, 6, 5, 4, 3, 2), labels = vecInfo)
 
-    # IP and INPUT signals
-    boxplot(meanValues[,3:4], ylab = "signal intensity", main = paste("Chromosome:\n", chrName),
-            col = c("red", "blue"))
-
-    hist(meanValues[,5], main = "Log2FC", xlab = "log2(IP / control)\n(average values, sliding windows)",
-        col = "orange")
-    
-    hist(meanValues[,6], main = "Average log2 signals", 
-                        xlab = "(log2(IP) + log2(control)) / 2\n(average values, sliding windows)",
-        col = "purple")
-
-    plot(meanValues[,3], meanValues[,4], pch = 20, main = paste("Chromosome:\n", chrName), 
-         xlab = "T1: IP signal", ylab = "T2: Control signal")
-
-    # to be selected a "good" window must have : 
-    # 1) low INPUT signal (< baseLineINPUT)
-    # 2) high IP signal (> IPthreshold * baseLineIP)
-    # 3) log2(IP/INPUT) > ratioThreshold
-    # 4) Average log2 > 
-
-    abline(h = thresholdINPUT, col = "red")
-    abline(v = thresholdIP, col = "red")
-
-    points(seedPositions[,3], seedPositions[,4], col = "red", pch = 20)
-
-    # MA plot representation
-    plot(meanValues[,6], meanValues[,5], xlab = "T4: (log2(IP) + log2(control)) / 2", ylab = "T3: log2(IP / control)",
-        main = paste("Chromosome:\n", chrName), pch = 20)  
-
-    abline(v = thresholdAverage, col = "red")
-	abline(h = ratioThreshold, col = "red")
-	
-    points(seedPositions[,6], seedPositions[,5], col = "red", pch = 20)
-    
-    # parameter summary
+    # result summary
     vecInfo = c(paste("Chromosome name:\n", chrName),
                 paste("# of significant windows \n(before the merging procedure):", nrow(seedPositions)),
                 paste("# of detected bPeaks \n(after the merging procedure):", nrow(finalSeeds)),
@@ -226,6 +192,41 @@ function(IPdata, controlData, chrName,
     
     text(rep(20,4), c(9, 7, 5, 3), labels = vecInfo)
 
+
+    # IP and INPUT signals
+ #   boxplot(meanValues[,3:4], ylab = "signal intensity", main = paste("Chromosome:\n", chrName),
+ #           col = c("red", "blue"))
+
+ #   hist(meanValues[,5], main = "Log2FC", xlab = "log2FC\n(average values, sliding windows)",
+ #       col = "orange")
+    
+ #   hist(meanValues[,6], main = "Average log2 signals", 
+ #                       xlab = "(log2(IP) + log2(control)) / 2\n(average values, sliding windows)",
+ #       col = "purple")
+
+    plot(meanValues[,4], meanValues[,3], pch = 20, main = paste("Chromosome:\n", chrName), 
+         ylab = "T1: IP signal", xlab = "T2: Control signal")
+
+    # to be selected a "good" window must have : 
+    # 1) low INPUT signal (< baseLineINPUT)
+    # 2) high IP signal (> IPthreshold * baseLineIP)
+    # 3) log2(IP/INPUT) > ratioThreshold
+    # 4) Average log2 > 
+
+    abline(v = thresholdINPUT, col = "red")
+    abline(h = thresholdIP, col = "red")
+
+    points(seedPositions[,4], seedPositions[,3], col = "red", pch = 20)
+
+    # MA plot representation
+    plot(meanValues[,6], meanValues[,5], xlab = "T4: (log2(IP) + log2(control)) / 2", ylab = "T3: log2FC",
+        main = paste("Chromosome:\n", chrName), pch = 20)  
+
+    abline(v = thresholdAverage, col = "red")
+	abline(h = ratioThreshold, col = "red")
+	
+    points(seedPositions[,6], seedPositions[,5], col = "red", pch = 20)
+    
     # end of PDF dataSummary
     dev.off()
 
@@ -239,7 +240,7 @@ function(IPdata, controlData, chrName,
     if(is.null(nrow(bedData))){
 
         bedData = c(chrName, bedData[1:2], 
-                    paste(chrName, "_bPeak_", nrow(finalSeeds), sep = ""),
+                    paste(chrName, "_bPeaks_", nrow(finalSeeds), sep = ""),
                     paste(bedData[3], "|", bedData[4], "|", bedData[5], "|", bedData[6],
                     sep = ""))
 
@@ -299,10 +300,10 @@ function(IPdata, controlData, chrName,
     vecInfo = c(paste("Chromosome name:\n", chrName),
                 paste("Window size:", windowSize),
                 paste("Window overlap:", windowOverlap),
-                paste("IP threshold: > x", IPthreshold),
-                paste("Control threshold: < x", INPUTthreshold),
-                paste("Log2FC threshold: > ", ratioThreshold),
-                paste("Average log2 signals ([0,1]): >", averageThreshold))
+                paste("IP threshold (T1): > x", IPthreshold),
+                paste("Control threshold (T2): < x", INPUTthreshold),
+                paste("Log2FC threshold (T3): > ", ratioThreshold),
+                paste("Average log2 signals ([0,1]) (T4): >", averageThreshold))
 
     plot(1, axes = F, xlab = "", ylab = "", main = "Parameter summary", 
             col = "white", ylim = c(0,10), xlim = c(0, 30))
@@ -310,39 +311,46 @@ function(IPdata, controlData, chrName,
     text(rep(15,7), c(9, 7, 6, 5, 4, 3, 2), labels = vecInfo)
 
     # IP and INPUT signals
-    boxplot(meanValues[,3:4], ylab = "signal intensity", main = paste("Chromosome:\n", chrName),
-            col = c("red", "blue"))
+#    boxplot(meanValues[,3:4], ylab = "signal intensity", main = paste("Chromosome:\n", chrName),
+#            col = c("red", "blue"))
 
-    hist(meanValues[,5], main = "Log2FC", xlab = "log2(IP / control)\n(average values, sliding windows)",
-        col = "orange")
+#    hist(meanValues[,5], main = "Log2FC", xlab = "log2(IP / control)\n(average values, sliding windows)",
+#        col = "orange")
     
-    hist(meanValues[,6], main = "Average log2 signals", 
-                        xlab = "(log2(IP) + log2(control)) / 2\n(average values, sliding windows)",
-        col = "purple")
-
-    # MA plot representation
-    plot(meanValues[,6], meanValues[,5], xlab = "(log2(IP) + log2(control)) / 2", ylab = "log2(IP / control)",
-        main = paste("Chromosome:\n", chrName), pch = 20)  
-
-    abline(v = thresholdAverage, col = "red")
-
-    plot(meanValues[,3], meanValues[,4], pch = 20, main = paste("Chromosome:\n", chrName), 
-         xlab = "IP signal", ylab = "Control signal")
-
-    abline(h = thresholdINPUT, col = "red")
-    abline(v = thresholdIP, col = "red")
-
+#    hist(meanValues[,6], main = "Average log2 signals", 
+#                        xlab = "(log2(IP) + log2(control)) / 2\n(average values, sliding windows)",
+#        col = "purple")
 
     # parameter summary
     vecInfo = c(paste("Chromosome name:\n", chrName),
                 paste("# of significant windows \n(before the merging procedure):", 0),
                 paste("# of detected bPeaks \n(after the merging procedure):", 0))
- 
+                
     plot(1, axes = F, xlab = "", ylab = "", main = "Result summary", 
             col = "white", ylim = c(0,10), xlim = c(0, 40))
     
-    text(rep(20,3), c(9, 7, 5), labels = vecInfo)
+    text(rep(20,4), c(9, 7, 5), labels = vecInfo)
 
+
+    plot(meanValues[,4], meanValues[,3], pch = 20, main = paste("Chromosome:\n", chrName), 
+         ylab = "T1: IP signal", xlab = "T2: Control signal")
+
+    # to be selected a "good" window must have : 
+    # 1) low INPUT signal (< baseLineINPUT)
+    # 2) high IP signal (> IPthreshold * baseLineIP)
+    # 3) log2(IP/INPUT) > ratioThreshold
+    # 4) Average log2 > 
+
+    abline(v = thresholdINPUT, col = "red")
+    abline(h = thresholdIP, col = "red")
+
+    # MA plot representation
+    plot(meanValues[,6], meanValues[,5], xlab = "T4: (log2(IP) + log2(control)) / 2", ylab = "T3: log2(IP / control)",
+        main = paste("Chromosome:\n", chrName), pch = 20)  
+
+    abline(v = thresholdAverage, col = "red")
+	abline(h = ratioThreshold, col = "red")
+    
     # end of PDF dataSummary
     dev.off()
 
